@@ -1,0 +1,74 @@
+# Open Source Document Reader TTS Web App
+
+We'll build a premium, highly aesthetic web application that allows users to upload Markdown, PDF, or text files, parses the text automatically, and reads it out loud using the state-of-the-art open-source **Kokoro-82M** TTS model directly in the browser. 
+
+By running entirely via WebAssembly (WASM) locally on the user's browser, there are no backend costs, complete privacy, and zero latency once the model is caching.
+
+> [!IMPORTANT]
+> **User Review Required**
+> Please review the architecture, chosen tech stack, and design aesthetic before we proceed to coding.
+
+## App Architecture & Tech Stack
+
+- **Framework**: Vite + React (Fastest development server, lightweight build).
+- **Styling**: Vanilla CSS. We will implement a stunning, modern dark-mode design featuring glassmorphism (frosted glass effects), vibrant blurred background gradients, smooth hover micro-animations, and modern typography (using Google Fonts 'Inter' or 'Outfit').
+- **Text-to-Speech**: `kokoro-js` (Powered by Transformers.js). This leverages the highly efficient Kokoro-82M model to generate incredibly natural and human-like voices directly in the browser. 
+- **File Parsing**:
+  - `pdfjs-dist`: To extract raw text elements from PDF pages.
+  - Native `FileReader` API for `.txt` and `.md` files.
+- **Icons**: `lucide-react` for premium, crisp iconography.
+
+## Proposed Changes
+
+### 1. Project Initialization & Setup
+- Initialize exactly in the current directory (`npx -y create-vite@latest ./ --template react`).
+- Install necessary dependencies (`kokoro-js`, `pdfjs-dist`, `lucide-react`).
+
+### 2. Core Styling (`index.css` & `App.css`)
+- Define our CSS variables (Tokens) for a sleek dark mode.
+- Establish responsive glassmorphism containers and animated backgrounds.
+- Set up global typography and utility classes for buttons and inputs.
+
+### 3. File Parser Utility
+#### [NEW] `src/utils/fileParser.js`
+- Create helper functions to read files.
+- Use `pdfjs-dist` to iterate through pages of a PDF and concatenate `.textContent`.
+- Extract text from generic text/markdown files.
+
+### 4. TTS Engine Manager
+#### [NEW] `src/utils/ttsEngine.js`
+- Singleton or custom React hook to manage the `kokoro-js` lifecycle.
+- Handles pulling the WASM model from HuggingFace, caching it, and exposing a `generate` function.
+- We will track model downloading progress so the user sees a beautiful loading bar.
+
+### 5. UI Components
+#### [NEW] `src/components/Dropzone.jsx`
+- A dashed-border drag-and-drop area. Smooth hover effects when a file is held over it.
+#### [NEW] `src/components/AudioPlayerControl.jsx`
+- Play, Pause, Stop buttons with animated rings. 
+- A dropdown to select different pre-packaged voices (e.g., `af_heart`, etc.).
+#### [NEW] `src/components/TextDisplay.jsx`
+- A readable, scrollable typography region showing the text that is currently being read. 
+#### [MODIFY] `src/App.jsx`
+- Orchestrates the state between the Dropzone, the Model Loader, the TextDisplay, and the AudioPlayer.
+
+## Expected User Flow
+1. User opens the app.
+2. A beautiful, glowing center module prompts them to "Drop a PDF, TXT, or Markdown Document".
+3. Upon dropping a file, the text is extracted instantly.
+4. If the TTS model is not yet loaded, a status indicator shows the download progress of the 82M param ONNX model.
+5. The user selects a voice, clicks "Play", and the device starts reading the text in high fidelity.
+
+## Open Questions
+
+> [!WARNING]
+> 1. **Initial Model Download**: The `kokoro-js` model is about 82MB. The very first time it is loaded, the browser will download it and cache it. Are you okay with the initial network load on the app? We will display a loading progress bar to mitigate the UX impact.
+> 2. **Continuous Reading vs Sentence by Sentence**: It's usually better to synthesize and play text sentence-by-sentence to avoid generating 10 straight minutes of audio which freezes the browser. Do you agree with a sentence-by-sentence chunking approach?
+
+## Verification Plan
+
+### Automated/Manual Testing
+- I will run the dev server (`npm run dev`).
+- Test uploading a `.txt` file and verify audio plays.
+- Test uploading a small `.pdf` file and checking if text extraction succeeds and audio plays.
+- Ensure the UI looks premium format across different screen widths.
