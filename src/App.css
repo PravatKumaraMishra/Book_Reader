@@ -11,36 +11,60 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.dropzone-container {
+.text-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.dropzone-header {
   border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  padding: 4rem 2rem;
-  text-align: center;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
   transition: all 0.3s ease;
   background: rgba(0, 0, 0, 0.2);
   cursor: pointer;
   position: relative;
-  overflow: hidden;
 }
 
-.dropzone-container:hover, .dropzone-container.active {
+.dropzone-header:hover, .dropzone-header.active {
   border-color: var(--accent-color);
   background: rgba(123, 66, 246, 0.05);
   box-shadow: 0 0 30px rgba(123, 66, 246, 0.1) inset;
 }
 
-.dropzone-content {
+.dropzone-header-content {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 1rem;
   pointer-events: none;
 }
 
-.dropzone-icon {
+.dropzone-icon-small {
   color: var(--accent-color);
-  margin-bottom: 1rem;
-  filter: drop-shadow(0 0 10px var(--accent-glow));
+  filter: drop-shadow(0 0 5px var(--accent-glow));
+}
+
+.text-input-area {
+  width: 100%;
+  min-height: 40vh;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.text-input-area:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .reader-section {
@@ -101,21 +125,32 @@
 
 .player-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
   margin-top: 1rem;
+  align-items: center;
 }
 
 .button-icon-only {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   padding: 0;
 }
 
+.button-icon-only.primary {
+  width: 56px;
+  height: 56px;
+}
+
 .button-icon-only svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+}
+
+.button-icon-only.primary svg {
+  width: 26px;
+  height: 26px;
 }
 
 .loading-overlay {

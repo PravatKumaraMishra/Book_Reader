@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
-import Dropzone from './components/Dropzone';
+import TextInputSection from './components/TextInputSection';
 import TextDisplay from './components/TextDisplay';
 import AudioPlayerControl from './components/AudioPlayerControl';
-import { parseFile } from './utils/fileParser';
 import { ttsEngine } from './utils/ttsEngine';
+import { Edit2 } from 'lucide-react';
 
 function App() {
   const [text, setText] = useState('');
+  const [isEditing, setIsEditing] = useState(true);
   const [sentences, setSentences] = useState([]);
   const [activeSentence, setActiveSentence] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,26 +19,23 @@ function App() {
   
   const isPlayingRef = useRef(false);
 
-  // Sync state to ref so async async loops can read latest playing state
+  // Sync state to ref so async callback loops can read latest playing state
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
-  const handleFileDrop = async (file) => {
-    try {
-      setLoadingMsg('Parsing file...');
-      const extractedText = await parseFile(file);
-      setText(extractedText);
-      const parsedSentences = (extractedText.match(/[^.!?]+[.!?]+/g) || [extractedText]).map(s => s.trim()).filter(s => s.length > 0);
-      setSentences(parsedSentences);
-      setActiveSentence(-1);
-      setLoadingMsg('');
-      setIsPlaying(false);
-      ttsEngine.stop();
-    } catch (e) {
-      alert(e.message);
-      setLoadingMsg('');
-    }
+  const handleReadRequest = () => {
+    if (!text.trim()) return;
+    const parsedSentences = (text.match(/[^.!?\n]+[.!?\n]+/g) || [text]).map(s => s.trim()).filter(s => s.length > 0);
+    setSentences(parsedSentences);
+    setActiveSentence(-1);
+    setIsEditing(false); // Switch to Read Mode
+  };
+
+  const handleEditRequest = () => {
+    setIsPlaying(false);
+    ttsEngine.stop();
+    setIsEditing(true); // Switch back to Edit Mode
   };
 
   const initModel = async () => {
@@ -84,8 +82,8 @@ function App() {
     }
   };
 
-  const handlePlay = async () => {
-    if (!text) return;
+  const handlePlay = async (startIndexOverride = null) => {
+    if (sentences.length === 0) return;
     
     // Resume context if needed
     if (ttsEngine.audioContext?.state === 'suspended') {
@@ -98,7 +96,11 @@ function App() {
 
     setIsPlaying(true);
     // If we're at the end or haven't started, start from 0
-    const startIdx = activeSentence === -1 ? 0 : activeSentence;
+    let startIdx = activeSentence === -1 ? 0 : activeSentence;
+    if (startIndexOverride !== null) {
+      startIdx = Math.max(0, Math.min(startIndexOverride, sentences.length - 1));
+    }
+    
     // Small timeout to allow state updates
     setTimeout(() => {
      playSequence(startIdx);
@@ -116,16 +118,33 @@ function App() {
     ttsEngine.stop();
   };
 
+  const handleSkipForward = () => {
+    if (sentences.length === 0) return;
+    handleStop(); 
+    // Wait for stop to firmly end current generator
+    setTimeout(() => {
+      handlePlay(activeSentence + 1);
+    }, 100);
+  };
+
+  const handleSkipBack = () => {
+    if (sentences.length === 0) return;
+    handleStop();
+    // Wait for stop to firmly end current generator
+    setTimeout(() => {
+      handlePlay(Math.max(0, activeSentence - 1));
+    }, 100);
+  };
+
+  // Helper for computing total words across sentences
+  const totalWords = sentences.reduce((acc, sent) => acc + sent.split(/\s+/).length, 0);
+
   return (
     <div className="app-container app-main">
       <header>
         <h1>Vocalise</h1>
-        <p>Your open-source document reader, powered by Kokoro TTS.</p>
+        <p>Edit, paste, and read documents with offline, open-source TTS.</p>
       </header>
-
-      {!text && !loadingMsg && (
-        <Dropzone onFileParsed={handleFileDrop} />
-      )}
 
       {loadingMsg && (
         <div className="glass-panel loading-overlay">
@@ -133,27 +152,44 @@ function App() {
           <p>{loadingMsg}</p>
           {progress > 0 && progress < 100 && (
             <div className="progress-bar-container">
-              <div 
-                className="progress-bar-fill" 
-                style={{ width: `${progress}%` }} 
-              />
+              <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>
       )}
 
-      {text && !loadingMsg && (
+      {!loadingMsg && isEditing && (
+        <TextInputSection 
+          text={text} 
+          setText={setText}
+          onReadRequest={handleReadRequest}
+          onFileParseStart={() => setLoadingMsg('Parsing file...')}
+          onFileParseError={(errMsg) => { alert(errMsg); setLoadingMsg(''); }}
+        />
+      )}
+
+      {!loadingMsg && !isEditing && (
         <div className="reader-section">
-          <TextDisplay text={text} currentSentenceIndex={activeSentence} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+               <button onClick={handleEditRequest} className="secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>
+                 <Edit2 size={16} /> Edit Text
+               </button>
+            </div>
+            <TextDisplay text={text} currentSentenceIndex={activeSentence} />
+          </div>
           
           <AudioPlayerControl 
             isPlaying={isPlaying}
-            onPlay={handlePlay}
+            onPlay={() => handlePlay()}
             onPause={handlePause}
             onStop={handleStop}
+            onSkipForward={handleSkipForward}
+            onSkipBack={handleSkipBack}
             selectedVoice={selectedVoice}
             setSelectedVoice={setSelectedVoice}
             disabled={loadingMsg !== ''}
+            totalWords={totalWords}
           />
         </div>
       )}

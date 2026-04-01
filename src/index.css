@@ -188,6 +188,17 @@ button.primary:hover {
   box-shadow: 0 0 30px var(--accent-glow);
 }
 
+button.secondary {
+  background: transparent;
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
+button.secondary:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;

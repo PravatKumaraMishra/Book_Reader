@@ -8,6 +8,7 @@ class TTSService {
     this.audioContext = null;
     this.isPlaying = false;
     this.currentSource = null;
+    this.generationId = 0;
     
     // Default available voices for Kokoro
     this.voices = [
@@ -49,12 +50,24 @@ class TTSService {
 
   async generateAndPlay(text, voice, onEnded) {
     if (!this.tts) throw new Error("TTS Model not loaded");
+    if (!text || text.trim() === '') {
+      if (onEnded) onEnded();
+      return;
+    }
     
-    // Stop any currently playing audio
+    // Stop any currently playing audio and cancel pending generations
     this.stop();
+    const currentGenId = ++this.generationId;
     
     try {
       const result = await this.tts.generate(text, { voice });
+      
+      // Abort Mechanism: check if state changed while generating
+      if (this.generationId !== currentGenId) {
+        console.log("Aborting audio playback; state changed during generation.");
+        return;
+      }
+
       // The generated result might be an object containing .audio and .sampling_rate
       // Or it might be a RawAudio object from transformers.js
       let audioData = result.audio;
@@ -77,7 +90,7 @@ class TTSService {
       
       this.currentSource.onended = () => {
         this.isPlaying = false;
-        if (onEnded) onEnded();
+        if (onEnded && this.generationId === currentGenId) onEnded();
       };
       
       this.isPlaying = true;
@@ -90,12 +103,13 @@ class TTSService {
   }
   
   stop() {
+    this.generationId++; // Advance generation id to abort dangling promises
     if (this.currentSource && this.isPlaying) {
       this.currentSource.stop();
       this.currentSource.disconnect();
       this.currentSource = null;
-      this.isPlaying = false;
     }
+    this.isPlaying = false;
   }
 }
 
